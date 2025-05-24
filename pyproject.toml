@@ -1,12 +1,11 @@
 [project]
-name = "qwen-rl"
+name = "conf-rl"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "einops>=0.8.1",
-    "flash-attn>=2.7.4.post1",
     "lightning>=2.5.1.post0",
     "ninja>=1.11.1.4",
     "tensorboard>=2.19.0",
@@ -17,18 +16,16 @@ dependencies = [
     "transformer-lens>=2.15.0",
     "trl>=0.15.2",
     "unsloth>=2025.4.4",
+    "xformers>=0.0.30",
 ]
 
-[tool.uv]
-# Tell uv “always build this package inside the main venv”
-no-build-isolation-package = ["flash-attn"]
+# Explicitly control where packages come from
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchaudio = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
 
-# (Optional) give uv the metadata flash‑attn hides so it can resolve
-[[tool.uv.dependency-metadata]]
-name = "flash-attn"
-requires-dist = ["torch"]   # what the wheel really needs
-
-[[tool.uv.index]]            # define the index once
-name     = "pytorch-cu128"
-url      = "https://download.pytorch.org/whl/nightly/cu128"
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
 explicit = true

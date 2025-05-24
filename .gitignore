@@ -7,6 +7,9 @@ __pycache__/
 lightning_logs/
 unsloth_compiled_cache/
 qwen_acts_idx/
+outputs/
+manifold_markets_*.json
+polymarket_markets_*.json
 
 # C extensions
 *.so
