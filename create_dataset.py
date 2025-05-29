@@ -217,7 +217,6 @@ async def fetch_polymarket_markets(
         "end_date_min": START_DATE_ISO,  # Filter by resolution date range
         "end_date_max": END_DATE_ISO,
         "volume_num_min": POLYMARKET_MIN_VOLUME,  # Minimum volume filter
-        # Remove order parameter to avoid validation error
     }
     
     try:
@@ -288,7 +287,8 @@ async def ManifoldGenerator():
                 # Filter markets based on resolutionTime and minimum traders using inline predicate
                 is_valid_market = lambda market: (
                     START_TIMESTAMP <= market.get('resolutionTime', 0) <= END_TIMESTAMP and
-                    market.get('uniqueBettorCount', 0) >= MANIFOLD_MIN_TRADERS
+                    market.get('uniqueBettorCount', 0) >= MANIFOLD_MIN_TRADERS and
+                    market.get('resolution', '') in ["YES", "NO"]
                 )
 
                 convert_manifold_market = lambda market: {
@@ -296,7 +296,8 @@ async def ManifoldGenerator():
                     "url": market.get('url', ''),
                     "question": market.get('question', ''),
                     "resolution": market.get('resolution', ''),
-                    "resolutionTime": market.get('resolutionTime', 0)
+                    "resolutionTime": market.get('resolutionTime', 0),
+                    "openTime": market.get('createdTime', 0)
                 }
                 
                 output = [convert_manifold_market(market) for market in markets if is_valid_market(market)]
@@ -365,12 +366,24 @@ async def MetaculusGenerator():
                         except ValueError:
                             pass
                     
+                    # Parse open time
+                    open_time_str = question.get('question', {}).get('open_time', '')
+                    open_timestamp = 0
+                    
+                    if open_time_str:
+                        try:
+                            open_time = datetime.fromisoformat(open_time_str.replace('Z', '+00:00'))
+                            open_timestamp = int(open_time.timestamp() * 1000)
+                        except ValueError:
+                            pass
+                    
                     return {
                         "source": "metaculus",
                         "url": f"https://www.metaculus.com/questions/{question.get('id', '')}/",
                         "question": question.get('question', {}).get('title', '') + "\n" + question.get('question', {}).get('resolution_criteria', ''),
                         "resolution": question.get('question', {}).get('resolution').upper(),
-                        "resolutionTime": resolve_timestamp
+                        "resolutionTime": resolve_timestamp,
+                        "openTime": open_timestamp
                     }
                 
                 valid_questions = [convert_metaculus_question(q) for q in questions if is_valid_question(q)]
@@ -449,6 +462,17 @@ async def PolymarketGenerator():
                         if not outcome_prices:
                             return False
                         
+                        outcomes_str = market.get('outcomes', '[]')
+                        # Check if all outcomes are yes/no only
+                        try:
+                            outcomes = json.loads(outcomes_str)
+                            # Check if any outcome is not yes or no (case-insensitive)
+                            for outcome in outcomes:
+                                if outcome.lower() not in ['yes', 'no']:
+                                    return False
+                        except (json.JSONDecodeError, TypeError):
+                            return False
+                        
                         return True
                         
                     except (ValueError, TypeError) as e:
@@ -466,6 +490,17 @@ async def PolymarketGenerator():
                         except ValueError:
                             pass
                     
+                    # Parse start date (open time)
+                    start_date_str = market.get('startDate', '')
+                    start_timestamp = 0
+                    
+                    if start_date_str:
+                        try:
+                            start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00'))
+                            start_timestamp = int(start_date.timestamp() * 1000)
+                        except ValueError:
+                            pass
+                    
                     # Determine resolution from outcome prices
                     resolution = "UNKNOWN"
                     outcome_prices_str = market.get('outcomePrices', '[]')
@@ -473,7 +508,6 @@ async def PolymarketGenerator():
                     
                     try:
                         # Parse the JSON strings
-                        import json
                         outcome_prices = json.loads(outcome_prices_str)
                         outcomes = json.loads(outcomes_str)
                         
@@ -498,7 +532,8 @@ async def PolymarketGenerator():
                         "url": f"https://polymarket.com/event/{market.get('slug', '')}",
                         "question": question,
                         "resolution": resolution,
-                        "resolutionTime": end_timestamp
+                        "resolutionTime": end_timestamp,
+                        "openTime": start_timestamp
                     }
                 
                 valid_markets = [convert_polymarket_market(m) for m in markets if is_valid_market(m)]
@@ -550,10 +585,10 @@ async def run_metaculus():
     async for questions in metaculus_generator:
         metaculus_data.extend(questions)
 
-    with open(f"metaculus_questions_{START_DATE}_{END_DATE}.json", "w") as f:
+    with open(f"metaculus_markets_{START_DATE}_{END_DATE}.json", "w") as f:
         json.dump(metaculus_data, f, indent=2)
     
-    logger.info(f"Saved {len(metaculus_data)} Metaculus questions to file")
+    logger.info(f"Saved {len(metaculus_data)} Metaculus markets to file")
     return metaculus_data
 
 

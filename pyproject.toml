@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "einops>=0.8.1",
+    "flash-attn>=2.7.4.post1",
     "lightning>=2.5.1.post0",
     "ninja>=1.11.1.4",
     "tensorboard>=2.19.0",
