@@ -12,7 +12,7 @@ manifold_markets_*.json
 polymarket_markets_*.json
 metaculus_markets_*.json
 all_markets_*.json
-.envrc
+training.log
 
 # C extensions
 *.so
