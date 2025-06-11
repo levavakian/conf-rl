@@ -6,8 +6,6 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 from helpers import (
-    extract_xml_answer,
-    extract_xml_confidence,
     confidence_format_reward_func,
     answer_format_reward_func,
     correctness_reward_func,
@@ -101,14 +99,14 @@ training_args = GRPOConfig(
     optim = "adamw_8bit",
     logging_steps = 1,
     per_device_train_batch_size = 1,
-    gradient_accumulation_steps = 1, # Increase to 4 for smoother training
-    num_generations = 6, # Decrease if out of memory
+    gradient_accumulation_steps = 4, # Increase to 4 for smoother training
+    num_generations = 4, # Decrease if out of memory
     generation_batch_size = 1,
     max_prompt_length = max_prompt_length,
     max_completion_length = max_completion_length,
     num_train_epochs = 1, # Set to 1 for a full training run
     max_steps = 100,
-    save_steps = 100,
+    save_steps = 10,
     report_to = "tensorboard", # Can use Weights & Biases
     output_dir = "outputs",
 
