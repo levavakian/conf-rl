@@ -38,6 +38,7 @@ YES
 """
 train_dataset = create_markets_dataset(train_markets, PREDICTION_SYSTEM_PROMPT)
 test_dataset = create_markets_dataset(test_markets, PREDICTION_SYSTEM_PROMPT)
+model_name = "Qwen/Qwen3-8B"
 
 max_seq_length = 2048 # Can increase for longer reasoning traces
 lora_rank = 32 # Larger rank = smarter, but slower
@@ -50,7 +51,7 @@ bnb_config = BitsAndBytesConfig(
 
 # Load tokenizer with proper configuration
 tokenizer = AutoTokenizer.from_pretrained(
-    "Qwen/Qwen3-14B",
+    model_name,
     model_max_length=max_seq_length,
     padding_side="left",
     truncation_side="left"
@@ -62,7 +63,7 @@ if tokenizer.pad_token is None:
 
 # Load model in 8-bit
 model = AutoModelForCausalLM.from_pretrained(
-    "Qwen/Qwen3-14B",
+    model_name,
     # quantization_config=bnb_config,
     device_map="auto",
     torch_dtype=torch.float16,
@@ -84,7 +85,6 @@ peft_config = LoraConfig(
     task_type="CAUSAL_LM", 
 )
 
-# Apply LoRA to the 8-bit model
 model = get_peft_model(model, peft_config)
 
 max_prompt_length = 512
